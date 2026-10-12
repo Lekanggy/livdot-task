@@ -6,6 +6,11 @@ import { withLatency, type WithLatencyOptions } from './latency';
 
 let current: Event = getScenario('draft-incomplete');
 let options: WithLatencyOptions = {};
+let failNext = false;
+
+export function setFailNext(next: boolean): void {
+  failNext = next;
+}
 
 export type ApiConfig = {
   scenario?: ScenarioId;
@@ -21,24 +26,41 @@ export function configureApi(config: ApiConfig = {}): void {
 
 export function resetApi(): void {
   configureApi({ scenario: 'draft-incomplete', latency: {} });
+  failNext = false;
 }
 
 export function getEvent(): Promise<Result<Event>> {
-  return withLatency(() => ({ ok: true, value: clone(current) }) as Result<Event>, options);
+  return withLatency(() => maybeFail({ ok: true, value: clone(current) }), options);
+}
+
+function maybeFail<T>(result: Result<T>): Result<T> {
+  if (failNext) {
+    failNext = false;
+    return { ok: false, error: apiError('network', 'Simulated failure — the next call was made to fail.') };
+  }
+  return result;
 }
 
 export function setRequirement(
   id: RequirementId,
   state: RequirementState,
 ): Promise<Result<Event>> {
-  return withLatency(() => applyEvent(() => applySetRequirement(id, state)), options);
+  return withLatency(() => maybeFail(applyEvent(() => applySetRequirement(id, state))), options);
+}
+
+export function setStreamFailure(on: boolean): void {
+  current = { ...clone(current), streamFailure: on };
 }
 
 export function transition(
   to: EventStatus,
   opts: { auto?: boolean } = {},
 ): Promise<Result<Event>> {
-  return withLatency(() => applyEvent(() => applyTransition(to, opts.auto ?? false)), options);
+  return withLatency(() => maybeFail(applyEvent(() => applyTransition(to, opts.auto ?? false))), options);
+}
+
+export function markReplayProcessed(): void {
+  current = { ...clone(current), replayProcessed: true };
 }
 
 function applyEvent(mutate: () => Result<Event>): Result<Event> {
@@ -76,8 +98,10 @@ function applyTransition(to: EventStatus, allowAuto: boolean): Result<Event> {
     return { ok: false, error: apiError('invalid_transition', blocker.message) };
   }
   const next = clone(current);
+  if (next.status === 'completed' && to === 'replay' && !next.replayProcessed) {
+    next.replayProcessed = true;
+  }
   next.status = to;
-  if (to === 'replay') next.replayProcessed = undefined;
   if (allowAuto) {
     const auto = autoTransition(next);
     if (auto) next.status = auto;

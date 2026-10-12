@@ -27,5 +27,8 @@ export function useEvent() {
     runAction: (action: ActionId, to: EventStatus) => commands.runTransition(action, to),
     clearNotice: commands.clearNotice,
     reload: commands.reload,
+    switchScenario: commands.switchScenario,
+    triggerStreamFailure: commands.triggerStreamFailure,
+    processReplay: commands.processReplay,
   };
 }

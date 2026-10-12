@@ -12,6 +12,7 @@ import { LifecycleStepper } from './LifecycleStepper';
 import { ReadinessPanel } from './ReadinessPanel';
 import { ActionBar } from './ActionBar';
 import { StreamFailureBanner } from './StreamFailureBanner';
+import { SimulationPanel } from '@/components/simulation/SimulationPanel';
 
 const TARGET: Record<ActionId, EventStatus> = {
   schedule: 'scheduled',
@@ -34,7 +35,7 @@ export function DashboardPage() {
       <LifecycleStepper steps={steps} />
       <StreamFailureBanner event={event} />
       <EventDetails event={event} />
-      <ReadinessPanel event={event} editable />
+      <ReadinessPanel event={event} />
       <ActionBar
         actions={actions}
         flight={actionFlight}
@@ -48,6 +49,7 @@ export function DashboardPage() {
           </button>
         </Alert>
       )}
+      <SimulationPanel />
     </main>
   );
 }

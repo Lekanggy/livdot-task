@@ -51,10 +51,6 @@ describe('blocked actions surface reasons', () => {
     setup();
     await waitForDashboard();
 
-    const buttons = screen
-      .getAllByRole('button')
-      .filter((b) => b.hasAttribute('data-testid') && b.getAttribute('data-testid') !== 'retry' && !b.hasAttribute('aria-description'));
-
     const actionButtons = screen.getAllByRole('button').filter((b) =>
       b.getAttribute('data-testid')?.startsWith('action-'),
     );

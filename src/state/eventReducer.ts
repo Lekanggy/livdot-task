@@ -21,7 +21,7 @@ export function eventReducer(state: State = initialState, action: EventAction): 
         actionFlight: null,
       };
     case 'REQUIREMENT_UPDATED':
-      return { ...state, event: action.event, notice: null };
+      return { ...state, event: action.event, notice: null, actionFlight: null };
     case 'STATUS_CHANGED':
       return {
         ...state,

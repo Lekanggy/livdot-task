@@ -41,12 +41,12 @@ describe('eventReducer', () => {
     expect(s.event).toBeNull();
   });
 
-  it('REQUIREMENT_UPDATED swaps event data, keeps flight flag', () => {
+  it('REQUIREMENT_UPDATED swaps event data and ends the flight', () => {
     const mid = eventReducer({ ...initialState, event }, actionStart('requirement'));
     const updated = makeEvent({ status: 'scheduled', requirementStates: { crew: 'satisfied' } });
     const s = eventReducer(mid, requirementUpdated(updated));
     expect(s.event?.requirements[0].state).toBe('satisfied');
-    expect(s.actionFlight).toBe('requirement');
+    expect(s.actionFlight).toBeNull();
   });
 
   it('STATUS_CHANGED swaps event and sets notice, clears flight', () => {
