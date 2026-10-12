@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import Home from "@/app/page";
 
 describe("root page", () => {
-  it("renders the dashboard placeholder", () => {
+  it("renders the dashboard loading state initially", () => {
     render(<Home />);
-    expect(screen.getByText(/dashboard placeholder/i)).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-loading")).toBeInTheDocument();
   });
 });

@@ -26,5 +26,6 @@ export function useEvent() {
     setRequirement: commands.setRequirement,
     runAction: (action: ActionId, to: EventStatus) => commands.runTransition(action, to),
     clearNotice: commands.clearNotice,
+    reload: commands.reload,
   };
 }

@@ -49,6 +49,9 @@ async function load(dispatch: ReturnType<typeof useEventDispatch>) {
 
 export function useEventCommands() {
   const dispatch = useEventDispatch();
+  const reload = useCallback(async () => {
+    await load(dispatch);
+  }, [dispatch]);
 
   const updateRequirement = useCallback(
     async (id: RequirementId, state: RequirementState) => {
@@ -91,5 +94,5 @@ export function useEventCommands() {
 
   const clearNotice = useCallback(() => dispatch(noticeCleared()), [dispatch]);
 
-  return { setRequirement: updateRequirement, runTransition, clearNotice };
+  return { setRequirement: updateRequirement, runTransition, clearNotice, reload };
 }
