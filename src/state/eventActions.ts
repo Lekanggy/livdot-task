@@ -1,5 +1,4 @@
 import type { Event } from '@/domain/types';
-import type { State } from './eventState';
 
 export type EventAction =
   | { type: 'LOAD_START' }
