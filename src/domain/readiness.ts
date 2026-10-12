@@ -1,6 +1,5 @@
-import { REQUIREMENTS } from './requirements';
+import { isSatisfied, requirementFailureText, requirementLabel } from './requirements';
 import type { Event, RequirementStatus } from './types';
-import { isSatisfied, requirementFailureText } from './requirements';
 
 export type Readiness = {
   satisfied: number;
@@ -20,5 +19,5 @@ export function getReadiness(event: Event): Readiness {
 }
 
 function failureText(entry: RequirementStatus): string {
-  return `${REQUIREMENTS[entry.id].label}: ${requirementFailureText(entry)}`;
+  return `${requirementLabel(entry.id)}: ${requirementFailureText(entry)}`;
 }

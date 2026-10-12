@@ -18,7 +18,9 @@ export const STATUS_LABELS: Record<EventStatus, string> = {
   replay: 'Replay Available',
 };
 
-export type RequirementId = 'crew' | 'ingest' | 'pricing';
+import type { RequirementId } from './requirements';
+
+export type { RequirementId };
 
 export type RequirementState = 'satisfied' | 'missing' | 'pending' | 'error';
 

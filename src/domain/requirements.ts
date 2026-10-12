@@ -1,33 +1,30 @@
 import type {
   Blocker,
   Event,
-  RequirementId,
   RequirementState,
   RequirementStatus,
 } from './types';
 
-export type RequirementDef = {
-  id: RequirementId;
-  label: string;
-  blockedMessage: string;
-};
-
-export const REQUIREMENTS: Record<RequirementId, RequirementDef> = {
+const REQUIREMENTS = {
   crew: {
-    id: 'crew',
     label: 'Crew assigned',
     blockedMessage: 'Crew is not confirmed yet.',
   },
   ingest: {
-    id: 'ingest',
     label: 'Ingest configured',
     blockedMessage: 'Ingest points to no valid source.',
   },
   pricing: {
-    id: 'pricing',
     label: 'Ticket pricing set',
     blockedMessage: 'Ticket pricing is missing.',
   },
+} as const;
+
+export type RequirementId = keyof typeof REQUIREMENTS;
+
+export type RequirementDef = {
+  label: string;
+  blockedMessage: string;
 };
 
 export const REQUIREMENT_IDS = Object.keys(REQUIREMENTS) as RequirementId[];
