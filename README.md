@@ -93,6 +93,9 @@ only in `domain/` and the service; components render and dispatch only.
 
 ## Documents
 
-- [docs/STATE_MODEL.md](docs/STATE_MODEL.md) — state shape, transition
+- [docs/STATE_MODEL.md](docs/STATE_MODEL.md) — state shape, transitions,
+  edge-case surfaces.
 - [docs/IMPLEMENTATION_NOTES.md](docs/IMPLEMENTATION_NOTES.md) — structure,
   assumptions, tradeoffs, next steps.
+- [docs/REVIEW_CHECKLIST.md](docs/REVIEW_CHECKLIST.md) — each review gate and
+  where it is demonstrated.
