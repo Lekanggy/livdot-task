@@ -123,15 +123,3 @@ function applyTransition(to: EventStatus, allowAuto: boolean): Result<Event> {
   }
   return { ok: true, value: next };
 }
-
-export function autoTransitionEvent(): Promise<Result<Event>> {
-  return withLatency(() => {
-    const auto = autoTransition(current);
-    if (!auto) return { ok: true, value: clone(current) };
-    return applyEvent(() => {
-      const next = clone(current);
-      next.status = auto;
-      return { ok: true, value: next };
-    });
-  }, options);
-}
