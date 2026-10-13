@@ -92,3 +92,9 @@ export function stepStates(status: EventStatus): StepState[] {
 export function statusLabel(status: EventStatus): string {
   return STATUS_LABELS[status];
 }
+
+export function nextStatus(status: EventStatus): EventStatus | null {
+  const idx = STATUS_ORDER.indexOf(status);
+  if (idx < 0 || idx >= STATUS_ORDER.length - 1) return null;
+  return STATUS_ORDER[idx + 1];
+}

@@ -23,6 +23,7 @@ export function useEvent() {
       : { satisfied: 0, total: 0, isReady: false, blockers: [] },
     actions: event ? getAvailableActions(event) : [],
     steps: event ? stepStates(event.status) : [],
+    nextAction: event ? getAvailableActions(event).find(a => a.action === nextActionId(event.status)) : undefined,
     setRequirement: commands.setRequirement,
     runAction: (action: ActionId, to: EventStatus) => commands.runTransition(action, to),
     clearNotice: commands.clearNotice,
@@ -31,4 +32,16 @@ export function useEvent() {
     triggerStreamFailure: commands.triggerStreamFailure,
     processReplay: commands.processReplay,
   };
+}
+
+function nextActionId(status: EventStatus): ActionId | undefined {
+  const map: Record<EventStatus, ActionId | undefined> = {
+    draft: 'schedule',
+    scheduled: 'goLive',
+    ready: 'goLive',
+    live: 'endEvent',
+    completed: 'enableReplay',
+    replay: undefined,
+  };
+  return map[status];
 }

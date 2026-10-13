@@ -27,6 +27,7 @@ export type RequirementDef = {
   blockedMessage: string;
 };
 
+export { REQUIREMENTS };
 export const REQUIREMENT_IDS = Object.keys(REQUIREMENTS) as RequirementId[];
 
 const UNSATISFIED: Record<Exclude<RequirementState, 'satisfied'>, string> = {

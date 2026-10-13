@@ -28,8 +28,8 @@ describe('DashboardPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('dashboard')).toBeInTheDocument(),
     );
-    expect(screen.getByTestId('status-badge')).toHaveTextContent('Draft');
-    expect(screen.getByTestId('detail-name')).toHaveTextContent(/keynote/i);
+    expect(screen.getAllByTestId('status-badge')[0]).toHaveTextContent('Draft');
+    expect(screen.getByText(/Fall Product Launch Keynote/i)).toBeInTheDocument();
     expect(screen.getByTestId('event-date')).toBeInTheDocument();
   });
 
@@ -43,13 +43,13 @@ describe('DashboardPage', () => {
 
   it('changes badge and stepper when the seed scenario changes', async () => {
     const { unmount } = renderDashboard();
-    await waitFor(() => expect(screen.getByTestId('status-badge')).toHaveTextContent('Draft'));
+    await waitFor(() => expect(screen.getAllByTestId('status-badge')[0]).toHaveTextContent('Draft'));
 
     unmount();
     configureScenario({ scenario: 'live' });
     renderDashboard();
     await waitFor(() =>
-      expect(screen.getByTestId('status-badge')).toHaveTextContent('Live'),
+      expect(screen.getAllByTestId('status-badge')[0]).toHaveTextContent('Live'),
     );
     expect(screen.getByTestId('step-live')).toHaveAttribute('data-state', 'current');
     expect(screen.getByTestId('step-draft')).toHaveAttribute('data-state', 'complete');
