@@ -4,7 +4,6 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import type { ActionId, EventStatus } from '@/domain/types';
-import { STATUS_LABELS } from '@/domain/types';
 import { useEvent } from '@/state/useEvent';
 import { EventHeader } from './EventHeader';
 import { EventDetails } from './EventDetails';
@@ -25,8 +24,7 @@ export function DashboardPage() {
   const { event, async, steps, notice, clearNotice, actions, actionFlight, runAction } =
     useEvent();
 
-  if (async.kind === 'loading') return <LoadingState />;
-  if (async.kind === 'error') return <ErrorState message={async.message} />;
+  if (async.kind === 'error' && !event) return <ErrorState message={async.message} />;
   if (!event) return <LoadingState />;
 
   return (
@@ -49,6 +47,12 @@ export function DashboardPage() {
           </button>
         </Alert>
       )}
+      {async.kind === 'loading' && (
+        <Alert tone="info" data-testid="dashboard-updating">
+          Updating…
+        </Alert>
+      )}
+      {/* Simulation controls stay mounted so scenarios can be switched mid-flight. */}
       <SimulationPanel />
     </main>
   );

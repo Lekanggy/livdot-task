@@ -1,6 +1,6 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { DashboardPage } from '@/components/dashboard/DashboardPage';
 import { EventProvider } from '@/state/EventProvider';
 import { configureApi, resetApi, setFailNext } from '@/services/mockEventApi';
@@ -26,7 +26,7 @@ async function pickScenario(id: string) {
     );
     await userEvent.selectOptions(select, option!.value);
   });
-  await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByTestId('dashboard-updating')).not.toBeInTheDocument());
 }
 
 describe('all six lifecycle states reachable via UI alone', () => {
@@ -49,9 +49,23 @@ describe('all six lifecycle states reachable via UI alone', () => {
     setup();
     await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument());
     await pickScenario('Completed');
+    // Gate: replay must finish processing before it can be enabled (simulated).
+    expect(screen.getByTestId('action-enableReplay')).toBeDisabled();
+    await userEvent.click(screen.getByTestId('sim-replay'));
+    await waitFor(() => expect(screen.getByTestId('action-enableReplay')).toBeEnabled());
     await userEvent.click(screen.getByTestId('action-enableReplay'));
     await waitFor(() =>
       expect(screen.getByTestId('status-badge')).toHaveTextContent('Replay Available'),
+    );
+  });
+
+  it('replay available: when Completed but not processed, enable is blocked with reason', async () => {
+    setup();
+    await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument());
+    await pickScenario('Completed');
+    expect(screen.getByTestId('action-enableReplay')).toBeDisabled();
+    expect(screen.getByTestId('blocked-enableReplay')).toHaveTextContent(
+      /replay is still processing/i,
     );
   });
 
@@ -82,35 +96,24 @@ describe('all six lifecycle states reachable via UI alone', () => {
 
 describe('stale responses and failures', () => {
   it('switching scenario mid-request does not flicker back to the old data', async () => {
-    vi.useFakeTimers();
-    configureApi({ latency: { minMs: 300, maxMs: 300 } });
+    configureApi({ latency: { minMs: 150, maxMs: 150 } });
     setup();
-    await vi.advanceTimersByTimeAsync(400);
-    await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument(), {
+      timeout: 2000,
+    });
 
     const select = screen.getByTestId('sim-scenario');
-    const live = Array.from(select.querySelectorAll('option')).find((o) =>
-      o.textContent?.includes('Live'),
-    );
+    // Two switches in quick succession: the first response must be dropped as stale.
     await act(async () => {
-      await userEvent.selectOptions(select, live!.value);
+      await userEvent.selectOptions(select, 'live');
+      await userEvent.selectOptions(select, 'draft-incomplete');
     });
-    await vi.advanceTimersByTimeAsync(400);
-    await waitFor(() =>
-      expect(screen.getByTestId('status-badge')).toHaveTextContent('Live'),
-    );
-
-    const backToDraft = Array.from(select.querySelectorAll('option')).find((o) =>
-      o.textContent?.includes('Draft'),
-    );
-    await act(async () => {
-      await userEvent.selectOptions(select, backToDraft!.value);
-    });
-    await vi.advanceTimersByTimeAsync(400);
     await waitFor(() =>
       expect(screen.getByTestId('status-badge')).toHaveTextContent('Draft'),
     );
-    vi.useRealTimers();
+    // After the stale Live response would have returned, it must NOT flicker back.
+    await new Promise((r) => setTimeout(r, 200));
+    expect(screen.getByTestId('status-badge')).toHaveTextContent('Draft');
   });
 
   it('one-shot failure shows feedback and leaves state consistent', async () => {
@@ -132,23 +135,26 @@ describe('stale responses and failures', () => {
   it('double-click runs only one transition (busy button is disabled while in flight)', async () => {
     configureApi({ latency: { minMs: 200, maxMs: 200 } });
     setup();
-    await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('dashboard')).toBeInTheDocument(), {
+      timeout: 2000,
+    });
     await pickScenario('Ready for Streaming');
 
     const goLive = screen.getByTestId('action-goLive');
+    // Fire two clicks back-to-back — native .click() on a disabled button no-ops
+    // in the browser, so dispatch synthetic events to exercise the flight guard.
     await act(async () => {
-      goLive.click();
+      goLive.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      goLive.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       await Promise.resolve();
     });
-    expect(goLive).toBeDisabled();
+    await waitFor(() => expect(goLive).toBeDisabled());
     expect(goLive).toHaveAttribute('aria-busy', 'true');
 
-    goLive.click();
-    await act(async () => {
-      vi.advanceTimersByTime(300);
-    });
     await waitFor(() =>
       expect(screen.getByTestId('status-badge')).toHaveTextContent('Live'),
     );
+    // The flight ended: the busy state resolved into the new Live status.
+    expect(goLive).not.toHaveAttribute('aria-busy');
   });
 });

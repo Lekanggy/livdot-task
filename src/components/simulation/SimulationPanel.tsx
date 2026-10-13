@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { STATUS_LABELS, type EventStatus } from '@/domain/types';
 import { SCENARIO_IDS, type ScenarioId } from '@/services/fixtures';
 import { useEvent } from '@/state/useEvent';
 
@@ -113,5 +112,3 @@ function ScenarioSelector({ onPick }: { onPick: (id: ScenarioId) => void }) {
 function failNextClick() {
   void import('@/services/mockEventApi').then(({ setFailNext }) => setFailNext(true));
 }
-
-export type { EventStatus };

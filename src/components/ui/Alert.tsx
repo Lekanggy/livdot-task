@@ -11,12 +11,13 @@ const TONES: Record<AlertTone, string> = {
 export function Alert({
   tone = 'info',
   children,
+  ...rest
 }: {
   tone?: AlertTone;
   children: React.ReactNode;
-}) {
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div role="alert" className={cn('rounded border px-4 py-3 text-sm', TONES[tone])}>
+    <div role="alert" className={cn('rounded border px-4 py-3 text-sm', TONES[tone])} {...rest}>
       {children}
     </div>
   );

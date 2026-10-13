@@ -41,11 +41,20 @@ function maybeFail<T>(result: Result<T>): Result<T> {
   return result;
 }
 
+/** Writes must decide the failure BEFORE mutating — a failed call leaves no trace. */
+function guardedWrite(mutate: () => Result<Event>): Result<Event> {
+  if (failNext) {
+    failNext = false;
+    return { ok: false, error: apiError('network', 'Simulated failure — the next call was made to fail.') };
+  }
+  return applyEvent(mutate);
+}
+
 export function setRequirement(
   id: RequirementId,
   state: RequirementState,
 ): Promise<Result<Event>> {
-  return withLatency(() => maybeFail(applyEvent(() => applySetRequirement(id, state))), options);
+  return withLatency(() => guardedWrite(() => applySetRequirement(id, state)), options);
 }
 
 export function setStreamFailure(on: boolean): void {
@@ -56,7 +65,7 @@ export function transition(
   to: EventStatus,
   opts: { auto?: boolean } = {},
 ): Promise<Result<Event>> {
-  return withLatency(() => maybeFail(applyEvent(() => applyTransition(to, opts.auto ?? false))), options);
+  return withLatency(() => guardedWrite(() => applyTransition(to, opts.auto ?? false)), options);
 }
 
 export function markReplayProcessed(): void {
@@ -89,10 +98,16 @@ function applySetRequirement(
   const target = next.requirements.find((r) => r.id === id);
   target!.state = state;
   delete target!.detail;
+  // Server is the source of truth: pending promotions/demotions land here too.
+  const auto = autoTransition(next);
+  if (auto) next.status = auto;
   return { ok: true, value: next };
 }
 
 function applyTransition(to: EventStatus, allowAuto: boolean): Result<Event> {
+  // Idempotent writes: a redundant transition to the current status is a no-op
+  // success (a double click must not corrupt state or report a failure).
+  if (current.status === to) return { ok: true, value: clone(current) };
   const blocker = canTransition(current, to);
   if (blocker) {
     return { ok: false, error: apiError('invalid_transition', blocker.message) };
