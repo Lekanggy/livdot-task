@@ -1,44 +1,47 @@
+import type { Event, RequirementId } from '@/domain/types';
 import { isSatisfied } from '@/domain/requirements';
-import type { Event } from '@/domain/types';
 import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
 import { RequirementRow } from './RequirementRow';
 
-export function ReadinessPanel({ event }: { event: Event }) {
+type Props = {
+  event: Event;
+  onConfigure: (id: RequirementId) => void;
+};
+
+export function ReadinessPanel({ event, onConfigure }: Props) {
   const total = event.requirements.length;
   const satisfied = event.requirements.filter(isSatisfied).length;
-  const progressPct = total > 0 ? Math.round((satisfied / total) * 100) : 0;
+  const pct = total > 0 ? Math.round((satisfied / total) * 100) : 0;
 
   return (
     <Card
-      title="Readiness"
+      title="Operational readiness"
       aside={`${satisfied} of ${total} satisfied`}
       testId="readiness-summary"
     >
-      <div className="mt-3">
-        <div
-          className="h-2 rounded-full bg-zinc-200"
-          role="progressbar"
-          aria-valuenow={progressPct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`${satisfied} of ${total} requirements satisfied`}
-        >
-          <div
-            className="h-2 rounded-full bg-emerald-600"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+      <div
+        aria-label="Readiness"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        role="progressbar"
+        className="my-3.5 h-2 overflow-hidden rounded-full bg-line"
+      >
+        {/* The only permitted inline style: dynamic readiness width (spec §5). */}
+        <div className="h-full bg-green-700" style={{ width: `${pct}%` }} />
       </div>
-      <ul className="mt-4 flex flex-col gap-0 border-t border-[--border] pt-4">
+
+      <ul>
         {event.requirements.map((entry) => (
-          <RequirementRow key={entry.id} entry={entry} />
+          <RequirementRow key={entry.id} entry={entry} onConfigure={() => onConfigure(entry.id)} />
         ))}
       </ul>
+
       {satisfied === total && total > 0 && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-          <span aria-hidden>✓</span>
+        <Alert tone="ok" className="mt-4">
           All requirements met.
-        </div>
+        </Alert>
       )}
     </Card>
   );

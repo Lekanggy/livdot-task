@@ -1,70 +1,64 @@
 import { STATUS_ORDER } from '@/domain/lifecycle';
 import { STATUS_LABELS, type StepState } from '@/domain/types';
+import { CheckIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 
-const MARK = {
-  complete: <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-  </svg>,
-  current: <span className="h-4 w-4 rounded-full ring-2 ring-[--primary] ring-offset-2" aria-hidden />,
-  upcoming: <span className="h-4 w-4 rounded-full border border-zinc-300" aria-hidden />,
-};
+type Props = { steps: StepState[] };
 
-export function LifecycleStepper({ steps }: { steps: StepState[] }) {
+export function LifecycleStepper({ steps }: Props) {
   const currentIdx = steps.findIndex((s) => s === 'current');
 
   return (
-    <div className="overflow-x-auto">
-      <ol
-        aria-label="Lifecycle"
-        className="flex min-w-max gap-0"
-        data-testid="lifecycle-stepper"
-      >
+    <nav aria-label="Event lifecycle" className="rounded-xl border border-line bg-surface px-6 py-5">
+      <p className="mb-3 text-sm font-semibold md:hidden" aria-live="polite" data-testid="stepper-current-line">
+        Step {currentIdx + 1} of 6 · {STATUS_LABELS[STATUS_ORDER[currentIdx]]}
+      </p>
+      <ol className="flex items-start" data-testid="lifecycle-stepper">
         {STATUS_ORDER.map((status, i) => (
           <li
             key={status}
             data-testid={`step-${status}`}
             data-state={steps[i]}
             aria-current={steps[i] === 'current' ? 'step' : undefined}
-            className="flex items-center"
+            className={cn('flex flex-col gap-2', i < STATUS_ORDER.length - 1 && 'flex-1')}
           >
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full border-2',
-                  steps[i] === 'complete' && 'border-emerald-500 bg-emerald-50 text-emerald-600',
-                  steps[i] === 'current' && 'border-[--primary] bg-[--surface] text-[--primary]',
-                  steps[i] === 'upcoming' && 'border-zinc-300 bg-[--surface] text-zinc-400',
-                )}
-              >
-                {MARK[steps[i]]}
-              </div>
-              <span
-                className={cn(
-                  'text-xs font-medium hidden sm:block',
-                  steps[i] === 'current' && '!text-[--primary] font-semibold',
-                  steps[i] === 'complete' && 'text-emerald-600',
-                  steps[i] === 'upcoming' && 'text-zinc-400',
-                )}
-              >
-                {STATUS_LABELS[status]}
-              </span>
-            </div>
-            {i < STATUS_ORDER.length - 1 && (
-              <div
-                className={cn(
-                  'flex-1 h-0.5 mt-3',
-                  steps[i] === 'complete' ? 'bg-emerald-500' : 'border-t border-zinc-200',
-                )}
-                aria-hidden
-              />
-            )}
+            <StepCircle state={steps[i]} index={i} />
+            <span
+              className={cn(
+                'text-xs leading-tight',
+                steps[i] === 'current' ? 'block font-bold text-ink' : 'hidden text-muted md:block',
+                steps[i] === 'complete' && 'md:font-semibold md:text-ink',
+              )}
+            >
+              {STATUS_LABELS[status]}
+            </span>
           </li>
         ))}
       </ol>
-      <p className="mt-2 text-xs text-[--muted] sm:hidden" aria-live="polite">
-        Step {currentIdx + 1} of 6 · {STATUS_LABELS[STATUS_ORDER[currentIdx]]}
-      </p>
+    </nav>
+  );
+}
+
+function StepCircle({ state, index }: { state: StepState; index: number }) {
+  const isLast = index === STATUS_ORDER.length - 1;
+  return (
+    <div className="flex items-center">
+      <span
+        className={cn(
+          'grid h-8 w-8 flex-none place-items-center rounded-full',
+          state === 'complete' && 'bg-primary text-white',
+          state === 'current' && 'border-[3px] border-primary bg-white font-bold text-primary',
+          state === 'upcoming' && 'border-2 border-slate-300 bg-white text-slate-500',
+        )}
+      >
+        {state === 'complete' ? <CheckIcon /> : index + 1}
+      </span>
+      {!isLast && (
+        <span
+          aria-hidden
+          className={cn('mx-2 h-[3px] flex-1 rounded', state === 'complete' ? 'bg-primary' : 'bg-line')}
+        />
+      )}
     </div>
   );
 }

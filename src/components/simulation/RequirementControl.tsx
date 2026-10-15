@@ -1,7 +1,13 @@
 import type { RequirementId, RequirementState } from '@/domain/types';
 import { requirementLabel } from '@/domain/requirements';
-import { REQUIREMENT_TONE, TONE_CLASSES } from '@/components/ui/tones';
 import { cn } from '@/lib/cn';
+
+const STATES: { value: RequirementState; label: string }[] = [
+  { value: 'satisfied', label: 'Satisfied' },
+  { value: 'missing', label: 'Missing' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'error', label: 'Error' },
+];
 
 type Props = {
   requirementId: RequirementId;
@@ -9,41 +15,33 @@ type Props = {
   onChange: (state: RequirementState) => void;
 };
 
-const STATES: RequirementState[] = ['satisfied', 'missing', 'pending', 'error'];
-
 export function RequirementControl({ requirementId, current, onChange }: Props) {
-  const label = requirementLabel(requirementId);
+  const group = `req-${requirementId}`;
 
   return (
-    <fieldset className="flex items-center gap-2">
-      <legend className="text-xs text-[--muted]">{label}</legend>
-      <div className="inline-flex rounded-lg border border-[--border] bg-[--surface] p-0.5">
-        {STATES.map((state) => {
-          const tone = REQUIREMENT_TONE[state];
-          const isActive = current === state;
+    <fieldset data-testid={`sim-req-${requirementId}`} className="min-w-0">
+      <legend className="mb-1.5 text-xs font-semibold text-muted">{requirementLabel(requirementId)}</legend>
+      <div className="inline-flex overflow-hidden rounded-lg border border-slate-300 text-sm">
+        {STATES.map(({ value, label }) => {
+          const selected = current === value;
           return (
             <label
-              key={state}
+              key={value}
               className={cn(
-                'flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
-                isActive
-                  ? TONE_CLASSES[tone] + ' ring-1 ring-[--border]'
-                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300',
+                'flex cursor-pointer items-center border-l border-slate-200 px-3 py-2 first:border-l-0',
+                'focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-primary',
+                selected ? 'bg-primary text-white' : 'bg-white text-muted hover:bg-slate-50',
               )}
             >
               <input
                 type="radio"
-                name={`req-${requirementId}`}
-                value={state}
-                checked={isActive}
-                onChange={() => onChange(state)}
+                name={group}
+                value={value}
+                checked={selected}
+                onChange={() => onChange(value)}
                 className="sr-only"
               />
-              {state === 'satisfied' && '✓'}
-              {state === 'missing' && '✕'}
-              {state === 'pending' && '⋯'}
-              {state === 'error' && '!'}
-              <span className="sr-only">{state}</span>
+              {label}
             </label>
           );
         })}

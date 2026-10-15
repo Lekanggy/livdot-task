@@ -1,17 +1,19 @@
 'use client';
 
+import type { ActionId, EventStatus } from '@/domain/types';
+import type { AvailableAction } from '@/domain/actions';
+import { useEvent } from '@/state/useEvent';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import type { ActionId, EventStatus } from '@/domain/types';
-import { useEvent } from '@/state/useEvent';
+import { TopBar } from './TopBar';
 import { EventHeader } from './EventHeader';
-import { EventDetails } from './EventDetails';
+import { NoticeStack } from './NoticeStack';
 import { LifecycleStepper } from './LifecycleStepper';
-import { NextStepCard } from './NextStepCard';
 import { ReadinessPanel } from './ReadinessPanel';
-import { StreamFailureBanner } from './StreamFailureBanner';
-import { SimulationPanel } from '@/components/simulation/SimulationPanel';
+import { NextStepCard } from './NextStepCard';
+import { EventDetails } from './EventDetails';
 import { DashboardSkeleton } from './DashboardSkeleton';
+import { SimulationPanel } from '@/components/simulation/SimulationPanel';
 
 const TARGET: Record<ActionId, EventStatus> = {
   schedule: 'scheduled',
@@ -21,76 +23,55 @@ const TARGET: Record<ActionId, EventStatus> = {
 };
 
 export function DashboardPage() {
-  const { event, async, steps, notice, clearNotice, actions, actionFlight, runAction, nextAction } =
-    useEvent();
+  const { event, async, steps, actionFlight, nextAction, otherActions, setRequirement, runAction } = useEvent();
 
   if (async.kind === 'error' && !event) return <ErrorState message={async.message} />;
   if (!event) return <DashboardSkeleton />;
 
-  const otherActions = actions.filter(a => a.action !== nextAction?.action);
+  const onRun = (a: AvailableAction) => void runAction(a.action, TARGET[a.action]);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6" data-testid="dashboard">
-      <div className="mx-auto flex max-w-4xl flex-col gap-6">
+    <div data-testid="dashboard">
+      <TopBar eventName={event.details.name} />
+      <main className="mx-auto flex max-w-[1200px] flex-col gap-6 px-6 py-8">
         <EventHeader event={event} />
-
-        <div className="space-y-3">
-          <LifecycleStepper steps={steps} />
-          <StreamFailureBanner event={event} />
-        </div>
-
+        <NoticeStack event={event} />
+        <LifecycleStepper steps={steps} />
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="lg:col-span-7">
-            <ReadinessPanel event={event} />
+            <ReadinessPanel event={event} onConfigure={(id) => void setRequirement(id, 'satisfied')} />
           </div>
-          <div className="lg:col-span-5">
+          <div className="flex flex-col gap-6 lg:col-span-5">
             <NextStepCard
               nextAction={nextAction}
               otherActions={otherActions}
+              event={event}
               flight={actionFlight}
-              onRun={(a) => void runAction(a.action, TARGET[a.action])}
+              onRun={onRun}
             />
             <EventDetails event={event} />
           </div>
         </div>
-
-        {notice && (
-          <Alert tone="info" className="mx-auto max-w-4xl">
-            {notice}{' '}
-            <button
-              onClick={clearNotice}
-              className="ml-1 underline underline-offset-2 hover:no-underline"
-              data-testid="notice-dismiss"
-            >
-              Dismiss
-            </button>
-          </Alert>
-        )}
-
-        {async.kind === 'loading' && (
-          <Alert tone="info" className="mx-auto max-w-4xl" data-testid="dashboard-updating">
-            Updating…
-          </Alert>
-        )}
-
         <SimulationPanel />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 function ErrorState({ message }: { message: string }) {
   const { reload } = useEvent();
   return (
-    <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6" data-testid="dashboard-error">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">
-        <Alert tone="bad" icon="✕">
-          Failed to load the event: {message}
-        </Alert>
-        <Button data-testid="retry" onClick={() => void reload()}>
-          Retry
-        </Button>
-      </div>
-    </main>
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-4 px-6 py-8" data-testid="dashboard-error">
+      <Alert tone="bad" title="Failed to load the event.">
+        {plainError(message)} Reload to try again.
+      </Alert>
+      <Button data-testid="retry" className="self-start" onClick={() => void reload()}>
+        Retry
+      </Button>
+    </div>
   );
+}
+
+function plainError(message: string): string {
+  return /blocked upstream|cannot/i.test(message) ? 'Something went wrong.' : `${message.split(' — ')[0]} `;
 }

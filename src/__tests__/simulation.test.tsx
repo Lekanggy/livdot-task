@@ -124,7 +124,7 @@ describe('stale responses and failures', () => {
 
     act(() => setFailNext(true));
     await userEvent.click(screen.getByTestId('action-goLive'));
-    await waitFor(() => expect(screen.getByText(/simulated failure/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/last action failed/i)).toBeInTheDocument());
     expect(screen.getAllByTestId('status-badge')[0]).toHaveTextContent('Ready for Streaming');
 
     await userEvent.click(screen.getByTestId('action-goLive'));

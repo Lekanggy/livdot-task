@@ -12,6 +12,10 @@ export function useEvent() {
   const commands = useEventCommands();
 
   const event = state.event;
+  const actions = event ? getAvailableActions(event) : [];
+  // Pure selector: the one action targeting the next lifecycle status (§7).
+  const nextAction = (event ? actions.find((a) => a.action === nextActionId(event.status)) : undefined) ?? null;
+  const otherActions = actions.filter((a) => a !== nextAction && a.enabled);
 
   return {
     event,
@@ -21,9 +25,9 @@ export function useEvent() {
     readiness: event
       ? getReadiness(event)
       : { satisfied: 0, total: 0, isReady: false, blockers: [] },
-    actions: event ? getAvailableActions(event) : [],
+    nextAction,
+    otherActions,
     steps: event ? stepStates(event.status) : [],
-    nextAction: event ? getAvailableActions(event).find(a => a.action === nextActionId(event.status)) : undefined,
     setRequirement: commands.setRequirement,
     runAction: (action: ActionId, to: EventStatus) => commands.runTransition(action, to),
     clearNotice: commands.clearNotice,

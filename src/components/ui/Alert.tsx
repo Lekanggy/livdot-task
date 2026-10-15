@@ -1,42 +1,52 @@
-import type { ReactNode } from 'react';
-import { TONE_CLASSES } from './tones';
+import type { HTMLAttributes, ReactNode } from 'react';
+import type { Tone } from './tones';
+import { TONE } from './tones';
 import { cn } from '@/lib/cn';
-
-type AlertTone = 'info' | 'ok' | 'warn' | 'bad';
+import { CheckIcon, CrossIcon, ExclamationIcon, InfoIcon } from './icons';
 
 type Props = {
-  tone?: AlertTone;
-  icon?: string;
-  children: ReactNode;
-} & React.HTMLAttributes<HTMLDivElement>;
+  tone?: Exclude<Tone, 'neutral'>;
+  title?: string;
+  onDismiss?: () => void;
+  className?: string;
+  children?: ReactNode;
+} & Omit<HTMLAttributes<HTMLDivElement>, 'title'>;
 
-const ICONS: Record<AlertTone, string> = {
-  info: 'ℹ',
-  ok: '✓',
-  warn: '⚠',
-  bad: '✕',
+const LEADING = {
+  ok: CheckIcon,
+  bad: CrossIcon,
+  warn: ExclamationIcon,
+  info: InfoIcon,
 };
 
-export function Alert({ tone = 'info', icon, children, role, className, ...rest }: Props) {
-  const t = tone === 'info' ? 'info' : tone;
-  const classes = TONE_CLASSES[t];
-
+export function Alert({ tone = 'info', title, onDismiss, className, children, role, ...rest }: Props) {
+  const Icon = LEADING[tone];
   return (
     <div
-      role={role || (tone === 'bad' ? 'alert' : 'status')}
-      aria-live={tone === 'bad' ? 'assertive' : 'polite'}
+      role={role ?? (tone === 'bad' ? 'alert' : 'status')}
       className={cn(
-        'rounded border px-4 py-3 text-sm flex items-start gap-2.5',
-        classes,
-        icon ? 'gap-2.5' : '',
+        'flex items-start gap-3 rounded-[10px] border bg-clip-border px-4 py-3.5',
+        TONE[tone].border,
+        TONE[tone].box,
         className,
       )}
       {...rest}
     >
-      <span aria-hidden className="mt-0.5">
-        {icon ?? ICONS[tone]}
-      </span>
-      {children}
+      <Icon className="mt-0.5 h-5 w-5 flex-none" />
+      <div className="flex-1">
+        {title && <strong className="font-semibold">{title}</strong>}
+        <div className={cn(title && !onDismiss && 'inline', 'text-sm')}>{children}</div>
+      </div>
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="mt-0.5 flex-none font-semibold opacity-70 hover:opacity-100"
+          aria-label="Dismiss notice"
+        >
+          ✕
+        </button>
+      )}
     </div>
   );
 }

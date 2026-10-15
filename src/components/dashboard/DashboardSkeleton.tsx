@@ -1,32 +1,35 @@
+const block = 'animate-pulse rounded-xl bg-slate-200';
+
 export function DashboardSkeleton() {
   return (
-    <main
-      className="mx-auto flex max-w-6xl flex-col gap-6 p-6"
-      data-testid="dashboard-loading"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="h-9 w-64 animate-pulse rounded-lg bg-zinc-200" />
-          <div className="mt-2 h-4 w-48 animate-pulse rounded bg-zinc-100" />
+    <div data-testid="dashboard-loading">
+      <div className="h-[60px] border-b border-line bg-surface">
+        <div className="mx-auto flex h-full max-w-[1200px] items-center gap-3 px-6">
+          <div className="h-7 w-7 animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
         </div>
-        <div className="h-6 w-24 animate-pulse rounded-full bg-zinc-200" />
       </div>
-
-      <div className="flex gap-8">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex flex-col items-center gap-2">
-            <div className="h-8 w-8 animate-pulse rounded-full border-2 border-zinc-200 bg-zinc-100" />
-            <div className="h-3 w-16 sm:w-24 animate-pulse rounded bg-zinc-100" />
+      <main className="mx-auto flex max-w-[1200px] flex-col gap-6 px-6 py-8">
+        <div className="flex items-start justify-between gap-4">
+          <div className="w-full max-w-md">
+            <div className={`${block} h-8 w-72`} />
+            <div className="mt-3 h-4 w-56 animate-pulse rounded bg-slate-200" />
           </div>
-        ))}
-      </div>
+          <div className={`${block} h-9 w-44`} />
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-7 h-64 animate-pulse rounded-xl bg-zinc-100" />
-        <div className="lg:col-span-5 h-64 animate-pulse rounded-xl bg-zinc-100" />
-      </div>
+        <div className={`${block} h-24 w-full`} />
 
-      <div className="h-24 animate-pulse rounded-xl bg-zinc-100" />
-    </main>
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className={`${block} h-72 lg:col-span-7`} />
+          <div className="flex flex-col gap-6 lg:col-span-5">
+            <div className={`${block} h-40`} />
+            <div className={`${block} h-60`} />
+          </div>
+        </div>
+
+        <div className={`${block} h-14 w-full`} />
+      </main>
+    </div>
   );
 }

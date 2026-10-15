@@ -29,7 +29,8 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('dashboard')).toBeInTheDocument(),
     );
     expect(screen.getAllByTestId('status-badge')[0]).toHaveTextContent('Draft');
-    expect(screen.getByText(/Fall Product Launch Keynote/i)).toBeInTheDocument();
+    // The name appears in the TopBar breadcrumb and the h1 (both sanctioned spots).
+    expect(screen.getAllByText(/Fall Product Launch Keynote/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('event-date')).toBeInTheDocument();
   });
 

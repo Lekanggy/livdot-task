@@ -2,91 +2,78 @@ import type { AvailableAction } from '@/domain/actions';
 import { ACTION_LABELS } from '@/domain/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Alert } from '@/components/ui/Alert';
-import { BlockedReason } from './BlockedReason';
-import { Spinner } from '@/components/ui/Spinner';
+import { BlockedReason, blockedReasonsFor } from './BlockedReason';
+import type { Event } from '@/domain/types';
 
 type Props = {
-  nextAction: AvailableAction | undefined;
+  nextAction: AvailableAction | null;
   otherActions: AvailableAction[];
+  event: Event;
   flight: string | null;
   onRun: (action: AvailableAction) => void;
 };
 
-export function NextStepCard({ nextAction, otherActions, flight, onRun }: Props) {
-  const isBusy = nextAction ? flight === nextAction.action : false;
+/** Plain-language "becomes available once …" lines per action. */
+const GATE: Partial<Record<string, string>> = {
+  schedule: 'a schedule date is set.',
+  goLive: 'the event is Ready for Streaming.',
+  enableReplay: 'replay processing finishes.',
+};
 
+export function NextStepCard({ nextAction, otherActions, event, flight, onRun }: Props) {
   if (!nextAction) {
     return (
       <Card title="Next step" testId="next-step-card">
-        <p className="text-sm text-[--muted]">No further actions</p>
+        <p className="text-sm">No further actions.</p>
       </Card>
     );
   }
 
-  const terminal = nextAction.action === 'enableReplay' &&
-    nextAction.enabled === false &&
-    nextAction.reason?.includes('processing');
+  const action = nextAction;
+  const isBusy = flight === action.action;
+  const reasons = action.enabled ? [] : blockedReasonsFor(action, event);
+  const describedBy = action.enabled || reasons.length === 0 ? undefined : `blocked-${action.action}`;
+  const others = otherActions.filter((a) => a.enabled && a !== action);
 
   return (
-    <Card title="Next step" aside={ACTION_LABELS[nextAction.action]} testId="next-step-card">
-      <div className="mt-4 flex flex-col gap-4">
-        <Button
-          variant="primary"
-          size="md"
-          busy={isBusy}
-          disabled={!nextAction.enabled}
-          describedBy={!nextAction.enabled ? `blocked-${nextAction.action}` : undefined}
-          onClick={() => onRun(nextAction)}
-          data-testid={`action-${nextAction.action}`}
-          className="w-full"
-        >
-          {isBusy ? (
-            <>
-              <Spinner label="" />
-              <span className="sr-only">Working…</span>
-            </>
-          ) : (
-            ACTION_LABELS[nextAction.action]
-          )}
-        </Button>
+    <Card title="Next step" testId="next-step-card">
+      <p id="why" className="mt-1 mb-4 text-muted">
+        {action.enabled ? 'Ready when you are.' : gateCopy(action, reasons)}
+      </p>
 
-        {!nextAction.enabled && nextAction.reason && (
-          <BlockedReason
-            id={`blocked-${nextAction.action}`}
-            reasons={[nextAction.reason]}
-          />
-        )}
+      <Button
+        size="lg"
+        busy={isBusy}
+        disabled={!action.enabled}
+        describedBy={describedBy}
+        onClick={() => onRun(action)}
+        data-testid={`action-${action.action}`}
+      >
+        {ACTION_LABELS[action.action]}
+      </Button>
 
-        {nextAction.enabled && otherActions.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-[--muted]">
-              Other actions
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {otherActions
-                .filter((a) => a.enabled)
-                .map((a) => (
-                  <Button
-                    key={a.action}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRun(a)}
-                    data-testid={`action-${a.action}`}
-                  >
-                    {ACTION_LABELS[a.action]}
-                  </Button>
-                ))}
-            </div>
+      {describedBy && <BlockedReason id={describedBy} reasons={reasons} />}
+
+      {others.length > 0 && (
+        <>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted">Other actions</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {others.map((a) => (
+              <Button key={a.action} variant="secondary" onClick={() => onRun(a)} data-testid={`action-${a.action}`}>
+                {ACTION_LABELS[a.action]}
+              </Button>
+            ))}
           </div>
-        )}
-
-        {terminal && (
-          <Alert tone="ok" icon="✓">
-            No further actions
-          </Alert>
-        )}
-      </div>
+        </>
+      )}
     </Card>
   );
+}
+
+function gateCopy(action: AvailableAction, reasons: string[]): string {
+  if (reasons.length === 0) {
+    return `${ACTION_LABELS[action.action]} becomes available once the earlier steps are done.`;
+  }
+  const gate = GATE[action.action] ?? 'the earlier steps are done.';
+  return `${ACTION_LABELS[action.action]} becomes available once ${gate}`;
 }
