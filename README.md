@@ -103,6 +103,4 @@ components render state and invoke commands through the state layer.
 This is a frontend prototype for a single event, not a production event
 management system. The mock API is in-memory, so changes are not persisted
 across a page reload and there is no authentication, multi-user synchronization,
-or real streaming integration. The service boundary is intended to make
-replacing the mock with a real API possible without moving lifecycle rules into
-the UI.
+or real streaming integration.
