@@ -1,101 +1,108 @@
 # Liv-dot — Event Operations Dashboard
 
-A single-page dashboard for operating one live-streamed event through a strict,
-guarded lifecycle:
+Liv-dot is a single-page dashboard prototype for operating one live-streamed
+event. It helps an operator understand the event's lifecycle, check whether it
+is ready to stream, see why an action is blocked, and move the event through
+the allowed steps:
 
 **Draft → Scheduled → Ready for Streaming → Live → Completed → Replay Available**
 
-All state comes from a mock, latency- and failure-simulating API service, so every
-UI path — including blocked actions, stale responses, and failures — is
-demonstrable without a backend.
+The app uses an in-memory mock API rather than a backend. The mock adds request
+latency and supports simulated failures, so the main UI and error-handling
+flows can be explored without environment variables, a database, or external
+services.
 
-## Setup
+## Getting started
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
-npm test         # vitest (domain, state, service, and UI suites)
-npm run lint     # eslint (next core-web-vitals + typescript)
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The app starts with a
+draft event and its requirements are not all satisfied.
+
+Other useful commands:
+
+```bash
+npm test         # Run the Vitest domain, state, service, and UI suites
+npm run lint     # Run ESLint
 npm run typecheck
 npm run build
 ```
 
-A fresh clone only needs `npm install && npm run dev` to reproduce everything in
-this README — no environment variables, no database.
+## What the dashboard shows
 
-## Using the dashboard
+- **Event header:** event name, start time, ticket price, and current status.
+- **Lifecycle stepper:** completed, current, and upcoming lifecycle stages.
+- **Operational readiness:** satisfied requirement count, progress, and a
+  status row for each requirement: crew assignment, ingest configuration, and
+  ticket pricing. Requirement states include satisfied, missing, pending, and
+  verification error.
+- **Next step:** the primary lifecycle action when one applies. If it is
+  blocked, the interface explains what needs attention. Other available
+  actions are shown separately.
+- **Event details and notices:** key event information, readiness warnings,
+  status updates, and dismissible action or simulation notices.
+- **Stream failure banner:** appears when a failure is simulated during a live
+  event.
 
-The page renders one event with:
+The lifecycle rules are guarded: for example, an event needs a schedule date
+before it can be scheduled, all requirements must be satisfied before it is
+ready, and replay processing must finish before replay can be enabled. When a
+scheduled event's final requirement becomes satisfied, it automatically moves
+to Ready for Streaming. If a requirement becomes unsatisfied while ready, it
+returns to Scheduled.
 
-- **Header** — name, start date, ticket price, and the current status badge.
-- **Lifecycle stepper** — complete / current / upcoming per status.
-- **Details** — event details plus per-requirement status.
-- **Readiness panel** — "N of M requirements satisfied" and one row per
-  requirement from the registry, each marked **✓ Satisfied**, **✕ Missing**,
-  **⏳ Pending**, or **⚠ Failed** (icon + wording, never color alone).
-- **Actions** — Schedule, Go Live, End Event, Enable Replay. Every disabled
-  action states exactly *why* inline (`Why blocked: …`) and links it to the
-  button via `aria-describedby`.
-- **Stream-failure banner** — shown while the event is live and a failure is
-  flagged.
-- **Notices** — status changes, auto-promotions/demotions, and failures appear
-  in a dismissible alert.
+## Developer tools (simulation)
 
-Key live-update behaviors (no reload anywhere):
-
-- When the last requirement of a Scheduled event is satisfied, the event
-  **auto-promotes** to Ready for Streaming with a visible notice.
-- Losing a requirement from Ready **auto-demotes** to Scheduled with a notice.
-- A requirement whose state becomes `pending` keeps the event Scheduled — the
-  blocked action explains the pending state specifically.
-
-## Scenario guide (Simulation panel)
-
-The Simulation section (bottom of the dashboard) drives the mock service:
+Expand **Developer tools (simulation)** at the bottom of the page to exercise
+the mock API and lifecycle:
 
 | Control | Effect |
 |---|---|
-| **Scenario selector** | Jumps the service to any lifecycle state: Draft incomplete, Scheduled (crew missing / ingest pending), Ready for Streaming, Live, Completed. Switching mid-request is safe — stale responses are discarded. |
-| **Requirement toggles (✓ / ✕)** | Set any requirement to satisfied/missing; watch promote/demote happen live. |
-| **Make next call fail** | Arms a one-shot network failure for the next service call: the request fails, an error notice appears, and state stays consistent (a failed write leaves no server-side trace). The next attempt succeeds. |
-| **Trigger stream failure** | (Live only) Sets the stream-failure flag; the amber banner appears. |
-| **Replay finished processing** | (Completed, before replay is enabled) Simulates replay processing completing, which unlocks Enable Replay. |
+| **Scenario** | Loads one of six fixtures: Draft incomplete, Scheduled with crew missing, Scheduled with ingest pending, Ready for Streaming, Live, or Completed. |
+| **Requirement controls** | Set crew, ingest, or pricing to Satisfied, Missing, Pending, or Error. Updates can promote or demote the event automatically. |
+| **Fail next call** | Makes the next API call fail once. A failed write does not mutate the mock server's event; retrying makes a normal request. |
+| **Stream failure (Live only)** | Turns the simulated stream-failure state on or off. |
+| **Replay processed (Completed only)** | Simulates completed replay processing and makes Enable Replay available. |
 
-Points a reviewer can verify quickly:
+Requests have simulated latency. If a newer request supersedes an older one,
+the older response is ignored so it cannot replace newer event data.
 
-1. Pick **Scheduled, crew missing** → satisfy crew via the toggle → badge flips
-   to Ready for Streaming *without a reload* and the auto-promotion notice shows.
-2. Pick **Live** → *Trigger stream failure* → banner appears.
-3. Arm *Make next call fail* → click Go Live on Ready → failure notice, state
-   unchanged → click again → Live.
-4. Fast-switch scenarios in the selector → no flicker back to a previous
-   scenario's data.
+### Quick walkthroughs
+
+1. Select **Scheduled, crew missing**, then set **Crew assigned** to
+   **Satisfied**. The event should automatically become Ready for Streaming.
+2. Select **Live** and turn on **Stream failure (Live only)** to see the
+   failure banner.
+3. Select **Ready for Streaming**, turn on **Fail next call**, and choose
+   **Go Live**. The action should fail with a notice and leave the event
+   unchanged; try again to move it to Live.
+4. Select **Completed**, enable **Replay processed**, then choose
+   **Enable Replay**.
 
 ## Project structure
 
-```
+```text
 src/
-  domain/      Pure business rules: transition table, requirements registry,
-               readiness computation, available actions, shared types/labels.
-  services/    Mock API (Result-typed), latency/failure simulation, fixtures,
-               timing helpers. Swappable for a real backend behind the same
-               interface.
-  state/       Reducer + contexts, action creators, token-based flight guard,
-               EventProvider orchestration, useEvent facade hook.
-  components/  display/ (dashboard panels), simulation/ panel, ui/ primitives
-               (Button, Alert, Spinner).
-  app/         Next.js App Router entry (page.tsx renders the dashboard).
-  __tests__/   vitest suites: domain rules, reducer, service, and UI flows.
+  app/          Next.js App Router entry point and global styles
+  components/   Dashboard, simulation controls, and reusable UI components
+  domain/       Lifecycle transitions, requirements, readiness, and action rules
+  services/     In-memory mock API, fixtures, latency, and result types
+  state/        React context, reducer, request coordination, and event hooks
+  __tests__/    Domain, state, service, and UI tests
 ```
 
-Layering rule: **components → state → services → domain**. Business logic lives
-only in `domain/` and the service; components render and dispatch only.
+The main dependency direction is **components → state → services → domain**.
+Business rules are defined in the domain layer and enforced by the service;
+components render state and invoke commands through the state layer.
 
-## Documents
+## Scope and limitations
 
-- [docs/STATE_MODEL.md](docs/STATE_MODEL.md) — state shape, transitions,
-  edge-case surfaces.
-- [docs/IMPLEMENTATION_NOTES.md](docs/IMPLEMENTATION_NOTES.md) — structure,
-  assumptions, tradeoffs, next steps.
-- [docs/REVIEW_CHECKLIST.md](docs/REVIEW_CHECKLIST.md) — each review gate and
-  where it is demonstrated.
+This is a frontend prototype for a single event, not a production event
+management system. The mock API is in-memory, so changes are not persisted
+across a page reload and there is no authentication, multi-user synchronization,
+or real streaming integration. The service boundary is intended to make
+replacing the mock with a real API possible without moving lifecycle rules into
+the UI.
